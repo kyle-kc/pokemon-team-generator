@@ -61,37 +61,48 @@ def get_pokedex_url(game_version_url: str) -> str:
 
 def generate_candidate_pokemon_list(pokedex_url: str, include_pokemon_which_can_evolve: bool) -> list[Pokemon]:
     candidate_pokemon_list = []
-    for pokemon_entry in get(pokedex_url).json()['pokemon_entries']:
+    pokemon_entries = get(pokedex_url).json()['pokemon_entries']
+    all_pokemon_names = {pokemon_entry["pokemon_species"]["name"] for pokemon_entry in pokemon_entries}
+    for pokemon_entry in pokemon_entries:
         species = get(pokemon_entry["pokemon_species"]["url"]).json()
-        pokemon = get(f"{_POKE_API_BASE_URL}pokemon/{species["id"]}").json()
-        if include_pokemon_which_can_evolve or is_final_evolution(species=species):
-            capitalized_name = pokemon["name"].capitalize()
-            candidate_pokemon_list.append(
-                Pokemon(
-                    name=capitalized_name,
-                    type_1=PokemonType.from_string(pokemon["types"][0]["type"]["name"]),
-                    type_2=PokemonType.from_string(pokemon["types"][1]["type"]["name"]) if len(
-                        pokemon["types"]) > 1 else None,
-                    total_base_stats=sum([stat["base_stat"] for stat in pokemon["stats"]]),
-                    is_starter=pokemon_entry["entry_number"] <= 9,
-                    link=f"{_BULBAPEDIA_BASE_URL}{pokemon["name"].capitalize()}_(Pokemon)"
-                )
-            )
+        if include_pokemon_which_can_evolve or is_final_evolution(species=species, all_pokemon_names=all_pokemon_names):
+            for variety in species["varieties"]:
+                # don't include mega, gigantamax, or totem varieties as a separate entry
+                if all(variation_identifier not in variety["pokemon"]["name"] for variation_identifier in ["-mega", "-gmax", "-totem"]):
+                    pokemon = get(variety["pokemon"]["url"]).json()
+                    capitalized_name = pokemon["name"].capitalize()
+                    candidate_pokemon_list.append(
+                        Pokemon(
+                            name=capitalized_name,
+                            type_1=PokemonType.from_string(pokemon["types"][0]["type"]["name"]),
+                            type_2=PokemonType.from_string(pokemon["types"][1]["type"]["name"]) if len(
+                                pokemon["types"]) > 1 else None,
+                            total_base_stats=sum([stat["base_stat"] for stat in pokemon["stats"]]),
+                            is_starter=pokemon_entry["entry_number"] <= 9,
+                            link=f"{_BULBAPEDIA_BASE_URL}{species["name"].capitalize()}_(Pokemon)"
+                            # use the species name, not the Pokemon (variety) name
+                        )
+                    )
     return candidate_pokemon_list
 
 
-def is_final_evolution(species: dict[str, Any]) -> bool:
+def is_final_evolution(species: dict[str, Any], all_pokemon_names: set[str]) -> bool:
     evolution_chain = get(species["evolution_chain"]["url"]).json()
-    final_evolutions = set()
-    queue = deque()
-    queue.append(evolution_chain["chain"])
-    while len(queue) > 0:
-        chain = queue.popleft()
-        if not chain["evolves_to"]:
-            final_evolutions.add(chain["species"]["name"])
-        queue.extend(chain["evolves_to"])
+    queue = deque([evolution_chain["chain"]])
 
-    return species["name"] in final_evolutions
+    while queue:
+        chain = queue.popleft()
+        evolves_to_list = chain["evolves_to"]
+
+        # if the species has no evolutions, or all of its evolutions are not part of the Pokedex for the game we're looking at, then treat this species as a final evolution
+        if chain["species"]["name"] == species["name"] and not {evolves_to_entry["species"]["name"] for evolves_to_entry
+                                                                in
+                                                                evolves_to_list}.intersection(all_pokemon_names):
+            return True
+
+        queue.extend(evolves_to_list)
+
+    return False
 
 
 if __name__ == "__main__":

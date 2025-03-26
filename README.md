@@ -17,16 +17,16 @@ This script generates a CSV file of candidate Pokémon to be considered when gen
 
 By default, all fully evolved Pokémon in the game's Pokedex are included.
 
-This script has a few other limitations:
+This script has a few limitations:
 
-1. Games with non-traditional starts, such as Yellow, Coliseum, XD: Gale of Darkness, and the Let's Go games, may not
+1. Games with non-traditional starters, such as Yellow, Coliseum, XD: Gale of Darkness, and the Let's Go games, may not
    identify starter Pokémon properly.
-2. This script does not currently support filtering out Pokémon which are not obtainable in a specific game.
-   All Pokémon in the game's Pokedex are considered, regardless of whether they can be legitimately or easily obtained.
+2. This script does not currently support filtering out Pokémon which are not obtainable in a specific game, such as
+   version-specific Pokémon or event legendaries.
+   All Pokémon in the game's Pokedex are considered, regardless of whether they can be legitimately or easily obtained
 3. Pokémon with multiple forms may not be handled properly. It is recommended that you manually inspect the entries for
-   Pokémon with multiple forms after running the script.
-4. Pokémon which have evolutions which were introduced in later games than when the Pokémon was first introduced may not
-   be handled correctly.
+   Pokémon with multiple forms after running the script. This is mostly due to PokéAPI not having updated `game_indices`
+   for Pokémon introduced in more recent games.
 
 The output of this script is a CSV file containing the list of candidate Pokémon along with data about each Pokémon.
 After running the script, inspect the resulting file and ensure it meets your specifications, manually adding, removing,
