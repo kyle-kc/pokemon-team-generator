@@ -79,7 +79,7 @@ def generate_candidate_pokemon_list(pokedex_url: str, include_pokemon_which_can_
                                 pokemon["types"]) > 1 else None,
                             total_base_stats=sum([stat["base_stat"] for stat in pokemon["stats"]]),
                             is_starter=pokemon_entry["entry_number"] <= 9,
-                            link=f"{_BULBAPEDIA_BASE_URL}{species["name"].capitalize()}_(Pokemon)"
+                            link=f"=HYPERLINK(\"{_BULBAPEDIA_BASE_URL}{species["name"].capitalize()}_(Pokemon)\")"
                             # use the species name, not the Pokemon (variety) name
                         )
                     )
